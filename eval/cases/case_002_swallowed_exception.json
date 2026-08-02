@@ -1,0 +1,7 @@
+{
+  "id": "case_002_swallowed_exception",
+  "language": "java",
+  "description": "catch 块吞掉异常，无日志无重抛",
+  "filePath": "src/main/java/com/demo/service/OrderService.java",
+  "diff": "@@ -80,10 +85,12 @@\n package com.demo.service;\n \n public class OrderService {\n     public void processOrder(Order order) {\n         try {\n             saveOrder(order);\n             notifyUser(order);\n-        } catch (Exception e) {\n-            log.error(\"订单处理失败\", e);\n-            throw new OrderException(e);\n+        } catch (Exception e) {\n         }\n     }\n }"
+}

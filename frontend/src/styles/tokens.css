@@ -1,0 +1,38 @@
+﻿:root {
+  --bg-primary: #000000;
+  --bg-alt: #13121c;
+  --bg-card: rgba(255,255,255,.08);
+  --text-primary: #fff;
+  --text-secondary: rgba(255,255,255,.65);
+  --text-tertiary: rgba(255,255,255,.45);
+  --border-subtle: rgba(255,255,255,.22);
+  --border-strong: rgba(255,255,255,.34);
+  --accent-primary: #b1e2ff;
+  --accent-secondary: #9381ff;
+  --accent-tertiary: #ffb347;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #fb7185;
+  --glass-fill: rgba(255,255,255,.065);
+  --glass-fill-strong: rgba(255,255,255,.085);
+  --glass-highlight: rgba(255,255,255,.24);
+  --glow-blue: rgba(177,226,255,.45);
+  --glow-purple: rgba(147,129,255,.52);
+  --font-page-title: 30px;
+  --font-panel-title: 18px;
+  --font-verdict: 40px;
+  --font-kpi: 40px;
+  --font-body: 13px;
+  --font-caption: 11px;
+}
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; min-width: 320px; height: 100%; background: #050507; color: var(--text-primary); font-family: Inter, "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255,255,255,.12); }
+::-webkit-scrollbar-track { background: transparent; }
+

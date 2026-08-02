@@ -1,0 +1,82 @@
+# ===== Code Review Agent 默认配置 =====
+# 启动时通过 --spring.profiles.active=dev 切换环境
+# 敏感配置（token、api-key）通过环境变量注入，不写死
+
+spring:
+  application:
+    name: code-review-agent
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000
+  datasource:
+    # 注意：characterEncoding 要填 JVM 字符集名（UTF-8），不是 MySQL 字符集名（utf8mb4）
+    # 填 utf8mb4 会抛 Unsupported character encoding（驱动 8.x 按 Java Charset 解析）
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/code_review_agent?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# ===== MyBatis-Plus =====
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true   # review_record_id → reviewRecordId
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+    db-config:
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+
+server:
+  port: 8080
+
+# ===== 业务配置 =====
+gitlab:
+  base-url: ${GITLAB_BASE_URL:https://gitlab.com}
+  # GitLab Personal Access Token（需要 api scope）
+  token: ${GITLAB_TOKEN:}
+  # Webhook Secret（与 GitLab Repo → Settings → Webhooks 配的 Secret 一致）
+  webhook-secret: ${WEBHOOK_SECRET:}
+
+# ===== GitHub 集成（V3 平台适配）=====
+# api-url 官方为 https://api.github.com；token 为 PAT（repo 权限）；
+# webhook-secret 对应仓库 webhook 配置的 Secret（HMAC-SHA256 验签）
+github:
+  api-url: ${GITHUB_API_URL:https://api.github.com}
+  token: ${GITHUB_TOKEN:}
+  webhook-secret: ${GITHUB_WEBHOOK_SECRET:}
+
+# ===== LLM 多 Provider 配置（可插拔）=====
+# default-provider 指定默认 Provider；providers 下每个 key 对应一个 Provider 实现
+# 新增 Provider 只需在此加一段配置 + 在 LlmProviderFactory 加一个 case
+llm:
+  default-provider: ${LLM_DEFAULT_PROVIDER:deepseek}
+  providers:
+    deepseek:
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+      api-key: ${DEEPSEEK_API_KEY:}
+      model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
+      max-tokens: 4096
+      temperature: 0.2
+    qianwen:
+      base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/api/v1}
+      api-key: ${DASHSCOPE_API_KEY:}
+      model: ${QIANWEN_MODEL:qwen-plus}
+      max-tokens: 4096
+      temperature: 0.2
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+      max-tokens: 4096
+      temperature: 0.2
+
+logging:
+  level:
+    io.github.lalala1314521: INFO
+    org.springframework.web: INFO

@@ -1,0 +1,12 @@
+{
+  "id": "case_004_no_test",
+  "expectedFindings": [
+    {
+      "lineNumber": 5,
+      "severity": "WARNING",
+      "category": "no_test",
+      "mustMention": ["测试", "test", "Test"]
+    }
+  ],
+  "expectedConclusion": "NEEDS_FIX"
+}

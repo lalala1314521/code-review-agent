@@ -1,0 +1,7 @@
+{
+  "id": "case_004_no_test",
+  "language": "java",
+  "description": "新增业务类但未新增对应测试",
+  "filePath": "src/main/java/com/demo/service/PaymentService.java",
+  "diff": "diff --git a/src/main/java/com/demo/service/PaymentService.java b/src/main/java/com/demo/service/PaymentService.java\nnew file mode 100644\nindex 0000000..abc1234\n--- /dev/null\n+++ b/src/main/java/com/demo/service/PaymentService.java\n@@ -0,0 +1,30 @@\n+package com.demo.service;\n+\n+public class PaymentService {\n+    public boolean pay(Order order) {\n+        // 调用第三方支付\n+        return thirdParty.pay(order.getAmount());\n+    }\n+    \n+    public void refund(Order order) {\n+        thirdParty.refund(order.getTransactionId());\n+    }\n+}"
+}

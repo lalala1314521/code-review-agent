@@ -1,0 +1,36 @@
+﻿# Maven
+target/
+*.jar
+*.war
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Spring Boot
+*.log
+logs/
+
+# 敏感配置（本地开发用，不提交）
+src/main/resources/application-local.yml
+src/main/resources/application-dev.yml
+**/application-*.local.yml
+
+# 个人记录 / 博客 / 备份（不入库）
+blogs/
+docs/
+backup-*/
+eval/reports/
+
+# OS
+.DS_Store
+Thumbs.db

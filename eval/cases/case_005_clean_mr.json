@@ -1,0 +1,7 @@
+{
+  "id": "case_005_clean_mr",
+  "language": "java",
+  "description": "无问题的清洁 MR，验证 LLM 不误报",
+  "filePath": "src/main/java/com/demo/util/StringUtil.java",
+  "diff": "@@ -5,10 +5,12 @@\n package com.demo.util;\n \n public class StringUtil {\n-    public static boolean isBlank(String s) {\n-        return s == null || s.trim().isEmpty();\n+    /**\n+     * 判断字符串是否为空或仅含空白字符\n+     */\n+    public static boolean isBlank(String s) {\n+        return s == null || s.trim().isEmpty();\n     }\n }"
+}

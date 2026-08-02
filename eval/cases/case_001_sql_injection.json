@@ -1,0 +1,7 @@
+{
+  "id": "case_001_sql_injection",
+  "language": "java",
+  "description": "字符串拼接 SQL 存在注入风险",
+  "filePath": "src/main/java/com/demo/dao/UserDao.java",
+  "diff": "@@ -40,10 +45,15 @@\n package com.demo.dao;\n \n public class UserDao {\n     public User findById(Long id) {\n-        String sql = \"SELECT * FROM user WHERE id = ?\";\n-        return jdbc.query(sql, id);\n+        String sql = \"SELECT * FROM user WHERE id = \" + id;\n+        return jdbc.query(sql);\n     }\n }"
+}

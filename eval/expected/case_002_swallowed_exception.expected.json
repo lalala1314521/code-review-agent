@@ -1,0 +1,12 @@
+{
+  "id": "case_002_swallowed_exception",
+  "expectedFindings": [
+    {
+      "lineNumber": 92,
+      "severity": "ERROR",
+      "category": "swallowed_exception",
+      "mustMention": ["吞", "异常", "日志", "重抛"]
+    }
+  ],
+  "expectedConclusion": "BLOCK"
+}

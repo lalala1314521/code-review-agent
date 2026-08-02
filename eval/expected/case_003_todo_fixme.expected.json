@@ -1,0 +1,12 @@
+{
+  "id": "case_003_todo_fixme",
+  "expectedFindings": [
+    {
+      "lineNumber": 13,
+      "severity": "INFO",
+      "category": "todo_fixme",
+      "mustMention": ["TODO", "FIXME", "未处理", "待办"]
+    }
+  ],
+  "expectedConclusion": "APPROVE"
+}

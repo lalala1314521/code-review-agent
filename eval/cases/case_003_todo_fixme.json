@@ -1,0 +1,7 @@
+{
+  "id": "case_003_todo_fixme",
+  "language": "java",
+  "description": "留下 TODO 未处理",
+  "filePath": "src/main/java/com/demo/util/CacheUtil.java",
+  "diff": "@@ -10,8 +10,10 @@\n package com.demo.util;\n \n public class CacheUtil {\n     public String get(String key) {\n+        // TODO: 添加缓存穿透保护\n+        // FIXME: 并发下可能击穿\n         return redis.get(key);\n     }\n }"
+}

@@ -1,0 +1,22 @@
+{
+  "object_kind": "merge_request",
+  "object_attributes": {
+    "action": "open",
+    "iid": 42,
+    "source_branch": "feature/test-webhook",
+    "target_branch": "main",
+    "last_commit": { "id": "abc123def456789" },
+    "title": "feat: 测试 Code Review Agent",
+    "description": "用于本地测试 webhook 接入是否正常",
+    "state": "opened",
+    "url": "https://gitlab.example.com/group/repo/-/merge_requests/42"
+  },
+  "project": {
+    "id": 123,
+    "path_with_namespace": "group/repo"
+  },
+  "user": {
+    "name": "Test User",
+    "username": "testuser"
+  }
+}
