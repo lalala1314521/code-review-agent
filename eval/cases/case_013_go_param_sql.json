@@ -1,0 +1,7 @@
+{
+  "id": "case_013_go_param_sql",
+  "language": "go",
+  "description": "Go 参数化查询（安全写法，不应误报注入）",
+  "filePath": "internal/dao/user_dao.go",
+  "diff": "@@ -3,9 +3,9 @@\npackage dao\n\n-func GetUser(db *sql.DB, id string) {\n-    sql := \"SELECT * FROM user WHERE id = \" + id\n-    rows, _ := db.Query(sql)\n-    return rows, nil\n+func GetUser(db *sql.DB, id string) (*sql.Rows, error) {\n+    rows, err := db.Query(\"SELECT * FROM user WHERE id = ?\", id)\n+    if err != nil {\n+        return nil, err\n+    }\n+    return rows, nil\n }"
+}

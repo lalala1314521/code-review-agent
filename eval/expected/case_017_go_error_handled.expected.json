@@ -1,0 +1,5 @@
+{
+  "id": "case_017_go_error_handled",
+  "expectedFindings": [],
+  "expectedConclusion": "APPROVE"
+}

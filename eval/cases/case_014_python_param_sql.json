@@ -1,0 +1,7 @@
+{
+  "id": "case_014_python_param_sql",
+  "language": "python",
+  "description": "Python 参数化查询（安全写法，不应误报注入）",
+  "filePath": "app/repositories/user_repo.py",
+  "diff": "@@ -1,6 +1,6 @@\ndef find_user(cursor, user_id):\n-    sql = f\"SELECT * FROM user WHERE id = {user_id}\"\n-    cursor.execute(sql)\n+    cursor.execute(\"SELECT * FROM user WHERE id = %s\", (user_id,))\n     return cursor.fetchone()"
+}

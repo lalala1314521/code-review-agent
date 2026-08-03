@@ -28,7 +28,7 @@ public class HardcodedSecretRule extends AbstractRule {
 
     private static final Pattern SECRET_ASSIGN = Pattern.compile(
             "(?i)(api[_-]?key|secret|password|passwd|token|access[_-]?key|private[_-]?key)"
-                    + "\\s*[:=]\\s*\"?([A-Za-z0-9_/+\\-.]{6,})\"?");
+                    + "\\s*[:=]\\s*[\"']?([A-Za-z0-9_/+\\-.]{6,})[\"']?");
     private static final Pattern PLACEHOLDER = Pattern.compile(
             "(?i)(\\$\\{|your[-_]|example|changeme|xxx+|placeholder|<.*>|\\*+)");
 

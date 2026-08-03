@@ -1,0 +1,5 @@
+{
+  "id": "case_015_java_logged_catch",
+  "expectedFindings": [],
+  "expectedConclusion": "APPROVE"
+}

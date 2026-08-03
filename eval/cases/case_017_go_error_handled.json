@@ -1,0 +1,7 @@
+{
+  "id": "case_017_go_error_handled",
+  "language": "go",
+  "description": "Go 错误已正确处理（不应误报未处理错误）",
+  "filePath": "internal/service/order.go",
+  "diff": "@@ -5,8 +5,8 @@\n func Cancel(id int) (string, error) {\n-    data, _ := fetch(id)\n-    return data, nil\n+    data, err := fetch(id)\n+    if err != nil {\n+        log.Printf(\"fetch failed: %v\", err)\n+        return \"\", err\n+    }\n+    return data, nil\n }"
+}

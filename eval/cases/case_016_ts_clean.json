@@ -1,0 +1,7 @@
+{
+  "id": "case_016_ts_clean",
+  "language": "typescript",
+  "description": "TS 干净改动（格式化函数，不应误报）",
+  "filePath": "src/utils/format.ts",
+  "diff": "@@ -1,5 +1,5 @@\n-export function formatPrice(n: number): string {\n-    return '¥' + n.toFixed(2)\n+export function formatPrice(n: number): string {\n+    return `¥${n.toFixed(2)}`\n }"
+}

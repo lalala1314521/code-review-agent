@@ -1,0 +1,7 @@
+{
+  "id": "case_006_go_sql_injection",
+  "language": "go",
+  "description": "Go 字符串拼接 SQL 注入",
+  "filePath": "internal/dao/user_dao.go",
+  "diff": "@@ -3,8 +3,8 @@\npackage dao\n\n func GetUser(db *sql.DB, id string) {\n-    rows, err := db.Query(\"SELECT * FROM user WHERE id = ?\", id)\n-    return rows, err\n+    sql := \"SELECT * FROM user WHERE id = \" + id\n+    rows, err := db.Query(sql)\n+    return rows, err\n }"
+}

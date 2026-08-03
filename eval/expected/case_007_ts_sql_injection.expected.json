@@ -1,0 +1,16 @@
+{
+  "id": "case_007_ts_sql_injection",
+  "expectedFindings": [
+    {
+      "lineNumber": 3,
+      "severity": "ERROR",
+      "category": "sql_injection",
+      "mustMention": [
+        "注入",
+        "参数化",
+        "拼接"
+      ]
+    }
+  ],
+  "expectedConclusion": "BLOCK"
+}

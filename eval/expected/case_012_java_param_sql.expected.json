@@ -1,0 +1,5 @@
+{
+  "id": "case_012_java_param_sql",
+  "expectedFindings": [],
+  "expectedConclusion": "APPROVE"
+}

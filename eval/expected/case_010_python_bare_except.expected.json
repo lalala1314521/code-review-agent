@@ -1,0 +1,12 @@
+{
+  "id": "case_010_python_bare_except",
+  "expectedFindings": [
+    {
+      "lineNumber": 5,
+      "severity": "ERROR",
+      "category": "empty_catch",
+      "mustMention": ["异常", "吞", "pass"]
+    }
+  ],
+  "expectedConclusion": "BLOCK"
+}

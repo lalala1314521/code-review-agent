@@ -1,0 +1,7 @@
+{
+  "id": "case_007_ts_sql_injection",
+  "language": "typescript",
+  "description": "TypeScript 模板字符串拼接 SQL 注入",
+  "filePath": "src/repositories/userRepo.ts",
+  "diff": "@@ -1,7 +1,8 @@\nexport async function findUser(id: string) {\n-    const rows = await db.query('SELECT * FROM user WHERE id = ?', [id])\n+    const sql = `SELECT * FROM user WHERE id = ${id}`\n+    const rows = await db.query(sql)\n    return rows\n}"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "case_015_java_logged_catch",
+  "language": "java",
+  "description": "catch 正确记录日志（不应误报吞异常）",
+  "filePath": "src/main/java/com/demo/service/OrderService.java",
+  "diff": "@@ -15,8 +15,8 @@\n     public void process(Order order) {\n         try {\n             persist(order);\n-        } catch (IOException e) {\n-            // ignore\n+        } catch (IOException e) {\n+            log.error(\"persist order failed\", e);\n         }\n     }"
+}

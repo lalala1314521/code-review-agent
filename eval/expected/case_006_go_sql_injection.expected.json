@@ -1,0 +1,16 @@
+{
+  "id": "case_006_go_sql_injection",
+  "expectedFindings": [
+    {
+      "lineNumber": 6,
+      "severity": "ERROR",
+      "category": "sql_injection",
+      "mustMention": [
+        "注入",
+        "参数化",
+        "拼接"
+      ]
+    }
+  ],
+  "expectedConclusion": "BLOCK"
+}

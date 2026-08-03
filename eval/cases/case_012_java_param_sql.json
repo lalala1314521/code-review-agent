@@ -1,0 +1,7 @@
+{
+  "id": "case_012_java_param_sql",
+  "language": "java",
+  "description": "参数化 SQL（安全写法，不应误报注入）",
+  "filePath": "src/main/java/com/demo/dao/UserDao.java",
+  "diff": "@@ -40,8 +40,8 @@\n public class UserDao {\n     public User findById(Long id) {\n-        String sql = \"SELECT * FROM user WHERE id = \" + id;\n-        return jdbc.query(sql);\n+        String sql = \"SELECT * FROM user WHERE id = ?\";\n+        return jdbc.query(sql, id);\n     }\n }"
+}

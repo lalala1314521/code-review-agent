@@ -14,17 +14,19 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * 空 catch 块检测（ERROR / java）。
+ * 空异常处理检测（ERROR / 全语言）。
  *
- * <p>两种形态：单行 {@code catch (Exception e) {}}；或 catch 行后第一个非空行直接是 {@code }}。
+ * <p>Java 形态：单行 {@code catch (Exception e) {}} 或 catch 后第一非空行是 {@code }}；
+ * Python 形态：{@code except...:} 后跟 {@code pass}（v2026.08 多语言支持）。
  * 异常被吞后系统"带病运行"，问题到下游才爆发，属可判死的确定性问题，故定 ERROR。
  */
 @Component
 public class EmptyCatchRule extends AbstractRule {
 
-    private static final Pattern CATCH_LINE = Pattern.compile("catch\\s*\\(");
+    private static final Pattern CATCH_LINE = Pattern.compile("(catch\\s*\\(|except\\s*[^:]*:)");
     private static final Pattern SINGLE_LINE_EMPTY = Pattern.compile("catch\\s*\\([^)]*\\)\\s*\\{\\s*}");
     private static final Pattern CLOSE_BRACE = Pattern.compile("^}\\s*(catch|finally|\\{|})?.*$");
+    private static final Pattern PY_PASS = Pattern.compile("^\\s*pass\\s*$");
 
     @Override
     public String ruleId() {
@@ -38,7 +40,7 @@ public class EmptyCatchRule extends AbstractRule {
 
     @Override
     public String applicableLanguage() {
-        return "java";
+        return null;   // Java catch + Python except 通用
     }
 
     @Override
@@ -53,14 +55,14 @@ public class EmptyCatchRule extends AbstractRule {
                 continue;
             }
             String content = line.content();
-            // 形态 1：单行空 catch
+            // 形态 1：单行空 catch（Java）
             if (SINGLE_LINE_EMPTY.matcher(content).find()) {
                 hits.add(hit(file, line.newLineNumber(),
                         "catch 块为空，异常被吞掉，无日志无重抛",
                         "至少记录日志 log.error(\"...\", e)，或包装后重抛；确实可忽略时加注释说明原因"));
                 continue;
             }
-            // 形态 2：catch 行以 { 结尾，向下找第一个非空行，若是 } 则块为空
+            // 形态 2（Java）：catch 行以 { 结尾，向下找第一个非空行，若是 } 则块为空
             if (content.trim().endsWith("{")) {
                 for (int j = i + 1; j < lines.size(); j++) {
                     String next = lines.get(j).content().trim();
@@ -75,6 +77,21 @@ public class EmptyCatchRule extends AbstractRule {
                         hits.add(hit(file, line.newLineNumber(),
                                 "catch 块为空，异常被吞掉，无日志无重抛",
                                 "至少记录日志 log.error(\"...\", e)，或包装后重抛；确实可忽略时加注释说明原因"));
+                    }
+                    break;
+                }
+            }
+            // 形态 3（Python）：except...: 后第一个非空行是 pass → 吞异常
+            if (content.trim().endsWith(":")) {
+                for (int j = i + 1; j < lines.size(); j++) {
+                    String next = lines.get(j).content().trim();
+                    if (next.isEmpty()) {
+                        continue;
+                    }
+                    if (PY_PASS.matcher(next).matches()) {
+                        hits.add(hit(file, line.newLineNumber(),
+                                "except 块为 pass，异常被静默吞掉",
+                                "记录日志 logging.exception(...) 或重新抛出；确实可忽略时加注释说明原因"));
                     }
                     break;
                 }

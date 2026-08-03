@@ -1,0 +1,7 @@
+{
+  "id": "case_008_python_sql_injection",
+  "language": "python",
+  "description": "Python f-string 拼接 SQL 注入",
+  "filePath": "app/repositories/user_repo.py",
+  "diff": "@@ -1,6 +1,7 @@\ndef find_user(cursor, user_id):\n-    cursor.execute(\"SELECT * FROM user WHERE id = %s\", (user_id,))\n+    sql = f\"SELECT * FROM user WHERE id = {user_id}\"\n+    cursor.execute(sql)\n    return cursor.fetchone()"
+}

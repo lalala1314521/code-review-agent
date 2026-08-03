@@ -1,0 +1,7 @@
+{
+  "id": "case_010_python_bare_except",
+  "language": "python",
+  "description": "Python 裸 except 吞异常",
+  "filePath": "app/services/order_service.py",
+  "diff": "@@ -1,7 +1,8 @@\n def create_order(payload):\n+    result = None\n     try:\n         result = process(payload)\n+    except Exception:\n+        pass\n     return result"
+}
