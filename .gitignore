@@ -37,3 +37,6 @@ Thumbs.db
 
 # 临时验证脚本
 verify-*.js
+
+# 损坏仓库备份（0803 重建后遗留）
+.git-broken-*/
