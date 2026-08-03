@@ -17,6 +17,7 @@
 - **多平台适配**：统一 GitLab Merge Request 与 GitHub Pull Request 的差异拉取、评论回写接口，通过 `PlatformRouter` 屏蔽平台差异
 - **LLM 代码审查**：将 Unified Diff 构造为结构化 Prompt，调用大模型输出分类审查意见，支持 DeepSeek、通义千问、OpenAI 三套 Provider 运行时动态切换
 - **规则引擎**：内置 9 条静态分析规则（SQL 注入检测、硬编码密钥、空 catch 块、事务边界检查、超大函数、魔法数字等），规则可启用/禁用、可自定义参数，审查结果与 LLM 发现合并裁决
+- **行级评论**：ERROR/WARNING 发现定位到具体代码行（GitLab discussions / GitHub review comments），总结评论自动更新不刷屏
 - **Veridct 综合裁决**：规则引擎与 LLM 的发现经 `VerdictDecider` 综合评估，输出 APPROVE / NEEDS_FIX / BLOCK 三级结论及置信度
 - **Webhook 幂等**：基于 Redis 的 `IdempotentGuard`，同一 commit 仅触发一次审查，避免重复评论
 - **异步审查 + SSE 进度**：Webhook 接收后立即返回 200，审查转入异步线程池执行；前端通过 SSE 实时订阅进度（排队 → 拉取 diff → 规则扫描 → LLM 分析 → 裁决 → 发布）
