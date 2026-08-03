@@ -3,6 +3,7 @@ package io.github.lalala1314521.codereviewagent.webhook;
 import io.github.lalala1314521.codereviewagent.model.UnifiedMergeRequest;
 import io.github.lalala1314521.codereviewagent.persistence.ReviewRecordService;
 import io.github.lalala1314521.codereviewagent.publisher.CommentPublisher;
+import io.github.lalala1314521.codereviewagent.publisher.InlineCommentPublisher;
 import io.github.lalala1314521.codereviewagent.review.ReviewEngine;
 import io.github.lalala1314521.codereviewagent.review.progress.ProgressEvent;
 import io.github.lalala1314521.codereviewagent.review.progress.ReviewProgressPublisher;
@@ -29,17 +30,20 @@ public class WebhookReviewOrchestrator {
     private final ReviewRecordService reviewRecordService;
     private final ReviewEngine reviewEngine;
     private final CommentPublisher commentPublisher;
+    private final InlineCommentPublisher inlineCommentPublisher;
     private final ReviewProgressPublisher progressPublisher;
 
     public WebhookReviewOrchestrator(IdempotentGuard idempotentGuard,
                                      ReviewRecordService reviewRecordService,
                                      ReviewEngine reviewEngine,
                                      CommentPublisher commentPublisher,
+                                     InlineCommentPublisher inlineCommentPublisher,
                                      ReviewProgressPublisher progressPublisher) {
         this.idempotentGuard = idempotentGuard;
         this.reviewRecordService = reviewRecordService;
         this.reviewEngine = reviewEngine;
         this.commentPublisher = commentPublisher;
+        this.inlineCommentPublisher = inlineCommentPublisher;
         this.progressPublisher = progressPublisher;
     }
 
@@ -75,6 +79,7 @@ public class WebhookReviewOrchestrator {
                     progressPublisher.publish(finalRecordId, ProgressEvent.PUBLISHING, "正在回写 MR 评论");
                     try {
                         commentPublisher.publishVerdict(mr, verdict);
+                        inlineCommentPublisher.publish(mr, verdict);
                         progressPublisher.publish(finalRecordId, ProgressEvent.DONE, "审查完成，评论已回写");
                         log.info("async review completed platform={} project={} mr={} conclusion={}",
                                 mr.platform(), mr.projectId(), mr.mrIid(), verdict.conclusion());

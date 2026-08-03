@@ -44,15 +44,18 @@ public class RuleEngine {
     private final Map<String, ReviewRule> ruleImpls;
     private final RuleMapper ruleMapper;
     private final ObjectMapper objectMapper;
+    private final ContentFetcher contentFetcher;
 
     /**
      * Spring 自动收集所有 ReviewRule 实现注入（策略模式的装配红利）。
      */
-    public RuleEngine(List<ReviewRule> rules, RuleMapper ruleMapper, ObjectMapper objectMapper) {
+    public RuleEngine(List<ReviewRule> rules, RuleMapper ruleMapper, ObjectMapper objectMapper,
+                      ContentFetcher contentFetcher) {
         this.ruleImpls = rules.stream()
                 .collect(Collectors.toMap(ReviewRule::ruleId, Function.identity()));
         this.ruleMapper = ruleMapper;
         this.objectMapper = objectMapper;
+        this.contentFetcher = contentFetcher;
         log.info("rule engine initialized with {} rule impls: {}",
                 ruleImpls.size(), ruleImpls.keySet());
     }
@@ -93,7 +96,7 @@ public class RuleEngine {
                     continue;   // 语言不匹配
                 }
                 try {
-                    RuleContext ctx = new RuleContext(parseParams(config.getParamsJson()), files, mr);
+                    RuleContext ctx = new RuleContext(parseParams(config.getParamsJson()), files, mr, contentFetcher);
                     findings.addAll(rule.apply(file, ctx));
                 } catch (Exception e) {
                     // 单条规则异常不拖垮其他规则

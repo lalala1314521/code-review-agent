@@ -34,3 +34,6 @@ eval/reports/
 # OS
 .DS_Store
 Thumbs.db
+
+# 临时验证脚本
+verify-*.js

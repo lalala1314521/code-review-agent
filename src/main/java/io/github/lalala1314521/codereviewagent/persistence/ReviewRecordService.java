@@ -53,7 +53,9 @@ public class ReviewRecordService {
      */
     public Long createPendingRecord(UnifiedMergeRequest mr) {
         ReviewRecordEntity entity = new ReviewRecordEntity();
-        entity.setTraceId(UUID.randomUUID().toString());
+        // 链路追踪：webhook 请求的 MDC traceId 透传为审查记录 traceId（无则自生成）
+        String traceId = org.slf4j.MDC.get(io.github.lalala1314521.codereviewagent.common.trace.TraceIdFilter.MDC_KEY);
+        entity.setTraceId(traceId != null ? traceId : UUID.randomUUID().toString());
         entity.setPlatform(mr.platform());
         entity.setProjectId(mr.projectId());
         entity.setRepoPath(mr.repoPath());
@@ -77,6 +79,14 @@ public class ReviewRecordService {
                     mr.projectId(), mr.mrIid(), mr.commitSha());
             return null;
         }
+    }
+
+    /**
+     * 查询记录 traceId（异步审查链路取回放 MDC 用）。
+     */
+    public String getTraceId(Long recordId) {
+        ReviewRecordEntity entity = recordMapper.selectById(recordId);
+        return entity != null ? entity.getTraceId() : null;
     }
 
     /**

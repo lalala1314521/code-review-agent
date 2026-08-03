@@ -41,13 +41,16 @@ public class GitLabWebhookController {
     private final SignatureVerifier signatureVerifier;
     private final GitLabClient gitLabClient;
     private final WebhookReviewOrchestrator orchestrator;
+    private final DebounceStore debounceStore;
 
     public GitLabWebhookController(SignatureVerifier signatureVerifier,
                                    GitLabClient gitLabClient,
-                                   WebhookReviewOrchestrator orchestrator) {
+                                   WebhookReviewOrchestrator orchestrator,
+                                   DebounceStore debounceStore) {
         this.signatureVerifier = signatureVerifier;
         this.gitLabClient = gitLabClient;
         this.orchestrator = orchestrator;
+        this.debounceStore = debounceStore;
     }
 
     @PostMapping("/webhook/gitlab")
@@ -86,9 +89,15 @@ public class GitLabWebhookController {
                         ? payload.objectAttributes().lastCommit().id() : "unknown");
 
         try {
-            // 4. 归一 → 编排器（幂等/落库/异步审查/评论回写/SSE）
+            // 4. 归一 → 去抖队列（连续 push 合并为一次审查）；Redis 故障降级直触发
             UnifiedMergeRequest mr = gitLabClient.toUnifiedMergeRequest(payload);
-            return ResponseEntity.ok(orchestrator.orchestrate(mr));
+            try {
+                debounceStore.put(mr);
+                return ResponseEntity.ok("queued (debounced)");
+            } catch (Exception debounceError) {
+                log.warn("debounce unavailable, trigger directly: {}", debounceError.getMessage());
+                return ResponseEntity.ok(orchestrator.orchestrate(mr));
+            }
         } catch (Exception e) {
             log.error("webhook processing failed project={} mr={}",
                     payload.project().id(),

@@ -80,3 +80,5 @@ logging:
   level:
     io.github.lalala1314521: INFO
     org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level %logger{36} - [%X{traceId:-}] %msg%n"

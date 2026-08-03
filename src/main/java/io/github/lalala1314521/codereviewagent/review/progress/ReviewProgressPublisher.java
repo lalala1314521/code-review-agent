@@ -27,8 +27,18 @@ public class ReviewProgressPublisher {
 
     /** SSE 连接超时：LLM 审查长尾 30s+，留足余量 */
     private static final long EMITTER_TIMEOUT_MS = 120_000L;
+    /** 心跳间隔：15s（小于常见代理空闲超时 30-60s） */
+    private static final long HEARTBEAT_INTERVAL_MS = 15_000L;
     /** 回放缓存最多保留的 record 数（LRU 淘汰最老） */
     private static final int HISTORY_MAX_RECORDS = 200;
+
+    /** 心跳调度器（共享单线程） */
+    private final java.util.concurrent.ScheduledExecutorService heartbeatScheduler =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "sse-heartbeat");
+                t.setDaemon(true);
+                return t;
+            });
 
     /** recordId → 订阅该记录的 SSE 连接 */
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> subscribers = new ConcurrentHashMap<>();
@@ -52,9 +62,14 @@ public class ReviewProgressPublisher {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
         subscribers.computeIfAbsent(recordId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
-        emitter.onCompletion(() -> unsubscribe(recordId, emitter));
-        emitter.onTimeout(() -> unsubscribe(recordId, emitter));
-        emitter.onError(e -> unsubscribe(recordId, emitter));
+        // 心跳保活：长审查（LLM 慢）无事件时，代理/网关可能按空窗超时断开连接
+        ScheduledFuture<?> heartbeat = heartbeatScheduler.scheduleAtFixedRate(
+                () -> sendHeartbeat(recordId, emitter), HEARTBEAT_INTERVAL_MS, HEARTBEAT_INTERVAL_MS,
+                java.util.concurrent.TimeUnit.MILLISECONDS);
+
+        emitter.onCompletion(() -> { heartbeat.cancel(false); unsubscribe(recordId, emitter); });
+        emitter.onTimeout(() -> { heartbeat.cancel(false); unsubscribe(recordId, emitter); });
+        emitter.onError(e -> { heartbeat.cancel(false); unsubscribe(recordId, emitter); });
 
         // 回放历史事件
         List<ProgressEvent> past = history.getOrDefault(recordId, List.of());
@@ -105,14 +120,28 @@ public class ReviewProgressPublisher {
         }
     }
 
+    /** 发送注释心跳（SSE 协议注释行，前端不可见，仅维持连接）。 */
+    private void sendHeartbeat(Long recordId, SseEmitter emitter) {
+        try {
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event().comment("hb"));
+            }
+        } catch (IOException | IllegalStateException e) {
+            unsubscribe(recordId, emitter);
+        }
+    }
+
     /**
      * 发送单条事件；返回 false 表示连接已失效（调用方负责移除）。
      */
     private boolean sendTo(SseEmitter emitter, ProgressEvent event) {
         try {
-            emitter.send(SseEmitter.event()
-                    .name("stage")
-                    .data(event));
+            // synchronized：心跳与事件可能并发写同一连接（SseEmitter 非线程安全）
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event()
+                        .name("stage")
+                        .data(event));
+            }
             return true;
         } catch (IOException | IllegalStateException e) {
             log.debug("sse send failed, drop subscriber record={}: {}", event.recordId(), e.getMessage());

@@ -112,12 +112,63 @@ public class GitLabClient {
                 .body(BranchDto[].class);
         if (branches == null) {
             return java.util.List.of();
-        }
-        return java.util.Arrays.stream(branches)
+        }        return java.util.Arrays.stream(branches)
                 .map(BranchDto::name)
                 .filter(java.util.Objects::nonNull)
                 .toList();
     }
+
+    /** 拉文件完整内容（raw 文件 API，path 需 URL 编码）；失败返回 null。 */
+    public String fetchRawFile(Long projectId, String path, String ref) {
+        String encodedPath = java.net.URLEncoder.encode(path, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        String content = gitLabRestClient.get()
+                .uri("/api/v4/projects/{projectId}/repository/files/{encodedPath}/raw?ref={ref}",
+                        projectId, encodedPath, ref)
+                .retrieve()
+                .body(String.class);
+        log.info("raw file fetched project={} path={} chars={}", projectId, path, content == null ? 0 : content.length());
+        return content;
+    }
+
+    /** 行级评论：POST discussions（position 定位到新文件指定行）。 */
+    public void postMrDiscussion(Long projectId, Long mrIid, String path, int line, String body) {
+        gitLabRestClient.post()
+                .uri("/api/v4/projects/{projectId}/merge_requests/{mrIid}/discussions", projectId, mrIid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "body", body,
+                        "position", Map.of(
+                                "position_type", "text",
+                                "new_path", path,
+                                "new_line", line)))
+                .retrieve()
+                .toBodilessEntity();
+        log.info("mr discussion posted project={} mr={} path={}:{}", projectId, mrIid, path, line);
+    }
+
+    /** MR 全部评论（含行级 note；返回 id+body，供清理标记评论）。 */
+    public List<MrNoteDto> listMrNotes(Long projectId, Long mrIid) {
+        MrNoteDto[] notes = gitLabRestClient.get()
+                .uri("/api/v4/projects/{projectId}/merge_requests/{mrIid}/notes?per_page=100&sort=desc",
+                        projectId, mrIid)
+                .retrieve()
+                .body(MrNoteDto[].class);
+        return notes == null ? java.util.List.of() : java.util.Arrays.asList(notes);
+    }
+
+    /** 删除单条 note（含行级 discussion 的 note）。 */
+    public void deleteMrNote(Long projectId, Long mrIid, Long noteId) {
+        gitLabRestClient.delete()
+                .uri("/api/v4/projects/{projectId}/merge_requests/{mrIid}/notes/{noteId}", projectId, mrIid, noteId)
+                .retrieve()
+                .toBodilessEntity();
+        log.info("mr note deleted project={} mr={} noteId={}", projectId, mrIid, noteId);
+    }
+
+    /** MR note DTO */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    public record MrNoteDto(Long id, String body) {}
 
     /** 分支 DTO（GitLab /repository/branches 响应） */
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
@@ -143,6 +194,44 @@ public class GitLabClient {
                 .toBodilessEntity();
         log.info("comment posted project={} mr={} chars={}", projectId, mrIid, body.length());
     }
+
+    /** 评论 upsert：已有标记评论则更新，否则新建（防连续 push 评论刷屏）。 */
+    public void upsertMrNote(Long projectId, Long mrIid, String marker, String body) {
+        Long existingId = findMarkedNoteId(projectId, mrIid, marker);
+        if (existingId != null) {
+            gitLabRestClient.put()
+                    .uri("/api/v4/projects/{projectId}/merge_requests/{mrIid}/notes/{noteId}",
+                            projectId, mrIid, existingId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("body", body))
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("comment updated project={} mr={} noteId={}", projectId, mrIid, existingId);
+        } else {
+            postMrNote(projectId, mrIid, body);
+        }
+    }
+
+    /** 查 MR 下含标记的首条评论 id；无则 null。 */
+    private Long findMarkedNoteId(Long projectId, Long mrIid, String marker) {
+        NoteDto[] notes = gitLabRestClient.get()
+                .uri("/api/v4/projects/{projectId}/merge_requests/{mrIid}/notes?per_page=100&sort=desc&order_by=updated_at",
+                        projectId, mrIid)
+                .retrieve()
+                .body(NoteDto[].class);
+        if (notes == null) {
+            return null;
+        }
+        return java.util.Arrays.stream(notes)
+                .filter(n -> n.body() != null && n.body().contains(marker))
+                .map(NoteDto::id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** MR 评论 DTO */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    private record NoteDto(Long id, String body) {}
 
     /**
      * 把单个文件的 diff 格式化成标准 unified diff 段落。

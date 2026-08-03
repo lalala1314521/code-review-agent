@@ -25,6 +25,8 @@ public class CommentPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(CommentPublisher.class);
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    /** 评论识别标记（HTML 注释，页面不可见）——upsert 定位用 */
+    public static final String COMMENT_MARKER = "<!-- codereview-agent -->";
 
     private final PlatformRouter platformRouter;
 
@@ -42,20 +44,12 @@ public class CommentPublisher {
     }
 
     /**
-     * 发布审查评论（V1 新增，基于 Verdict）。
-     *
-     * <p>生成结构化总结评论：
-     * <ul>
-     *   <li>结论（建议合并/需修复/阻塞）+ 置信度（高/中/低把握）</li>
-     *   <li>统计（ERROR/WARNING/INFO 数量）</li>
-     *   <li>findings 列表（按严重度排序，含文件/行号/建议）</li>
-     *   <li>元信息（Provider、commit SHA、审查时间）</li>
-     * </ul>
+     * 发布 Verdict 评论（upsert：同一 MR/PR 更新已有评论，连续 push 不刷屏）。
      */
     public void publishVerdict(UnifiedMergeRequest mr, Verdict verdict) {
         String comment = formatVerdictComment(mr, verdict);
-        platformRouter.postComment(mr, comment);
-        log.info("verdict comment published platform={} project={} mr={} conclusion={}",
+        platformRouter.upsertComment(mr, COMMENT_MARKER, comment);
+        log.info("verdict comment upserted platform={} project={} mr={} conclusion={}",
                 mr.platform(), mr.projectId(), mr.mrIid(), verdict.conclusion());
     }
 
@@ -65,7 +59,8 @@ public class CommentPublisher {
     private String formatVerdictComment(UnifiedMergeRequest mr, Verdict verdict) {
         StringBuilder sb = new StringBuilder();
 
-        // 头部：结论 + 置信度
+        // 头部：识别标记（不可见）+ 结论 + 置信度
+        sb.append(COMMENT_MARKER).append("\n");
         sb.append("🤖 **Code Review Agent 已审查**\n\n");
         sb.append("## 总体结论\n\n");
         sb.append(getConclusionEmoji(verdict.conclusion())).append(" **")

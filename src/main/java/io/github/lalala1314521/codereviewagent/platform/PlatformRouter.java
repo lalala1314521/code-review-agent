@@ -1,5 +1,6 @@
 package io.github.lalala1314521.codereviewagent.platform;
 
+import io.github.lalala1314521.codereviewagent.model.DiffFile;
 import io.github.lalala1314521.codereviewagent.model.UnifiedMergeRequest;
 import io.github.lalala1314521.codereviewagent.platform.github.GitHubClient;
 import io.github.lalala1314521.codereviewagent.platform.gitlab.GitLabClient;
@@ -51,6 +52,62 @@ public class PlatformRouter {
             case "GITLAB" -> gitLabClient.postMrNote(mr.projectId(), mr.mrIid(), body);
             case GitHubClient.PLATFORM -> gitHubClient.postPrComment(mr.repoPath(), mr.mrIid(), body);
             default -> log.warn("postComment unsupported platform={}, skip", mr.platform());
+        }
+    }
+
+    /** 评论 upsert：同一 MR/PR 更新已有标记评论，不追加（防刷屏）。 */
+    public void upsertComment(UnifiedMergeRequest mr, String marker, String body) {
+        switch (mr.platform()) {
+            case "GITLAB" -> gitLabClient.upsertMrNote(mr.projectId(), mr.mrIid(), marker, body);
+            case GitHubClient.PLATFORM -> gitHubClient.upsertPrComment(mr.repoPath(), mr.mrIid(), marker, body);
+            default -> log.warn("upsertComment unsupported platform={}, skip", mr.platform());
+        }
+    }
+
+    /** 行级评论：定位到具体代码行（GitHub 需 head commit sha）。 */
+    public void postInlineComment(UnifiedMergeRequest mr, String filePath, int line, String body) {
+        switch (mr.platform()) {
+            case "GITLAB" -> gitLabClient.postMrDiscussion(mr.projectId(), mr.mrIid(), filePath, line, body);
+            case GitHubClient.PLATFORM -> gitHubClient.postReviewComment(
+                    mr.repoPath(), mr.mrIid(), mr.commitSha(), filePath, line, body);
+            default -> log.warn("postInlineComment unsupported platform={}, skip", mr.platform());
+        }
+    }
+
+    /** 删除该 MR/PR 上含标记的行级评论（下次审查前清理，防累积）。 */
+    public void deleteInlineComments(UnifiedMergeRequest mr, String marker) {
+        switch (mr.platform()) {
+            case "GITLAB" -> {
+                for (GitLabClient.MrNoteDto note : gitLabClient.listMrNotes(mr.projectId(), mr.mrIid())) {
+                    if (note.body() != null && note.body().contains(marker)) {
+                        gitLabClient.deleteMrNote(mr.projectId(), mr.mrIid(), note.id());
+                    }
+                }
+            }
+            case GitHubClient.PLATFORM -> {
+                for (GitHubClient.ReviewCommentDto comment : gitHubClient.listReviewComments(mr.repoPath(), mr.mrIid())) {
+                    if (comment.body() != null && comment.body().contains(marker)) {
+                        gitHubClient.deleteReviewComment(mr.repoPath(), comment.id());
+                    }
+                }
+            }
+            default -> log.warn("deleteInlineComments unsupported platform={}, skip", mr.platform());
+        }
+    }
+
+    /**
+     * 拉取文件完整内容（AST 规则数据源）；失败/不支持返回 null。
+     */
+    public String fetchRawFile(UnifiedMergeRequest mr, DiffFile file, String path) {
+        try {
+            return switch (mr.platform()) {
+                case "GITLAB" -> gitLabClient.fetchRawFile(mr.projectId(), path, mr.targetBranch());
+                case GitHubClient.PLATFORM -> gitHubClient.fetchRawFile(mr.repoPath(), path, mr.targetBranch());
+                default -> null;
+            };
+        } catch (Exception e) {
+            log.warn("fetch raw file failed platform={} path={}: {}", mr.platform(), path, e.getMessage());
+            return null;
         }
     }
 

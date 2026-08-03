@@ -85,6 +85,100 @@ public class GitHubClient {
         log.info("pr comment posted repo={} pr={} chars={}", repoPath, prNumber, body.length());
     }
 
+    /** 拉文件完整内容（contents API + raw Accept）；失败返回 null。 */
+    public String fetchRawFile(String repoPath, String path, String ref) {
+        String[] parts = splitRepoPath(repoPath);
+        // path 是服务端给出的真实路径，保留斜杠直接拼（模板变量会编码 / 导致 404）
+        String safePath = path.replace(" ", "%20").replace("#", "%23").replace("?", "%3F");
+        String content = gitHubRestClient.get()
+                .uri("/repos/{owner}/{repo}/contents/" + safePath + "?ref={branch}", parts[0], parts[1], ref)
+                .accept(MediaType.valueOf("application/vnd.github.raw"))
+                .retrieve()
+                .body(String.class);
+        log.info("raw file fetched repo={} path={} chars={}", repoPath, path, content == null ? 0 : content.length());
+        return content;
+    }
+
+    /** 评论 upsert：已有标记评论则 PATCH 更新，否则新建（防连续 push 刷屏）。 */
+    public void upsertPrComment(String repoPath, Long prNumber, String marker, String body) {
+        String[] parts = splitRepoPath(repoPath);
+        Long existingId = findMarkedCommentId(parts[0], parts[1], prNumber, marker);
+        if (existingId != null) {
+            gitHubRestClient.patch()
+                    .uri("/repos/{owner}/{repo}/issues/comments/{commentId}", parts[0], parts[1], existingId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("body", body))
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("pr comment updated repo={} pr={} commentId={}", repoPath, prNumber, existingId);
+        } else {
+            postPrComment(repoPath, prNumber, body);
+        }
+    }
+
+    /** 查 PR 下含标记的首条评论 id；无则 null。 */
+    private Long findMarkedCommentId(String owner, String repo, Long prNumber, String marker) {
+        CommentDto[] comments = gitHubRestClient.get()
+                .uri("/repos/{owner}/{repo}/issues/{prNumber}/comments?per_page=100&direction=desc",
+                        owner, repo, prNumber)
+                .retrieve()
+                .body(CommentDto[].class);
+        if (comments == null) {
+            return null;
+        }
+        return java.util.Arrays.stream(comments)
+                .filter(c -> c.body() != null && c.body().contains(marker))
+                .map(CommentDto::id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** PR 评论 DTO */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    private record CommentDto(Long id, String body) {}
+
+    /** 行级评论：POST /repos/{o}/{r}/pulls/{n}/comments（line 必须在 PR diff hunk 内，否则 422）。 */
+    public void postReviewComment(String repoPath, Long prNumber, String commitSha, String path, int line, String body) {
+        String[] parts = splitRepoPath(repoPath);
+        gitHubRestClient.post()
+                .uri("/repos/{owner}/{repo}/pulls/{prNumber}/comments", parts[0], parts[1], prNumber)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "body", body,
+                        "commit_id", commitSha,
+                        "path", path,
+                        "line", line,
+                        "side", "RIGHT"))
+                .retrieve()
+                .toBodilessEntity();
+        log.info("review comment posted repo={} pr={} path={}:{}", repoPath, prNumber, path, line);
+    }
+
+    /** PR 行级评论列表（review comments，非 issues comments）。 */
+    public List<ReviewCommentDto> listReviewComments(String repoPath, Long prNumber) {
+        String[] parts = splitRepoPath(repoPath);
+        ReviewCommentDto[] comments = gitHubRestClient.get()
+                .uri("/repos/{owner}/{repo}/pulls/{prNumber}/comments?per_page=100&direction=desc",
+                        parts[0], parts[1], prNumber)
+                .retrieve()
+                .body(ReviewCommentDto[].class);
+        return comments == null ? List.of() : java.util.Arrays.asList(comments);
+    }
+
+    /** 删除行级评论：DELETE /repos/{o}/{r}/pulls/comments/{id}。 */
+    public void deleteReviewComment(String repoPath, Long commentId) {
+        String[] parts = splitRepoPath(repoPath);
+        gitHubRestClient.delete()
+                .uri("/repos/{owner}/{repo}/pulls/comments/{commentId}", parts[0], parts[1], commentId)
+                .retrieve()
+                .toBodilessEntity();
+        log.info("review comment deleted repo={} commentId={}", repoPath, commentId);
+    }
+
+    /** PR review comment DTO */
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    public record ReviewCommentDto(Long id, String body) {}
+
     /**
      * 拉仓库分支列表（上下文切换器"远程分支勾取"用）。
      */

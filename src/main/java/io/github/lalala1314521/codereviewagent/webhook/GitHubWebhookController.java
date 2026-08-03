@@ -39,15 +39,18 @@ public class GitHubWebhookController {
     private final GitHubSignatureVerifier signatureVerifier;
     private final GitHubClient gitHubClient;
     private final WebhookReviewOrchestrator orchestrator;
+    private final DebounceStore debounceStore;
     private final ObjectMapper objectMapper;
 
     public GitHubWebhookController(GitHubSignatureVerifier signatureVerifier,
                                    GitHubClient gitHubClient,
                                    WebhookReviewOrchestrator orchestrator,
+                                   DebounceStore debounceStore,
                                    ObjectMapper objectMapper) {
         this.signatureVerifier = signatureVerifier;
         this.gitHubClient = gitHubClient;
         this.orchestrator = orchestrator;
+        this.debounceStore = debounceStore;
         this.objectMapper = objectMapper;
     }
 
@@ -88,9 +91,15 @@ public class GitHubWebhookController {
                     payload.number(), action,
                     payload.pullRequest().head() != null ? payload.pullRequest().head().sha() : "unknown");
 
-            // 4. 归一 → 编排器（与 GitLab 同一套链路）
+            // 4. 归一 → 去抖队列（连续 push 合并为一次审查）；Redis 故障降级直触发
             UnifiedMergeRequest mr = gitHubClient.toUnifiedMergeRequest(payload);
-            return ResponseEntity.ok(orchestrator.orchestrate(mr));
+            try {
+                debounceStore.put(mr);
+                return ResponseEntity.ok("queued (debounced)");
+            } catch (Exception debounceError) {
+                log.warn("debounce unavailable, trigger directly: {}", debounceError.getMessage());
+                return ResponseEntity.ok(orchestrator.orchestrate(mr));
+            }
         } catch (Exception e) {
             log.error("github webhook processing failed", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("processing failed");

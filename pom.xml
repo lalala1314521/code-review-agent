@@ -68,6 +68,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- JavaParser（AST 规则：unused_import / high_complexity）-->
+        <dependency>
+            <groupId>com.github.javaparser</groupId>
+            <artifactId>javaparser-core</artifactId>
+            <version>3.25.10</version>
+        </dependency>
+
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

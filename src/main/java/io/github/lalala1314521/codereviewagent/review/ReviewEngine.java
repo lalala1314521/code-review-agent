@@ -139,6 +139,21 @@ public class ReviewEngine {
      * @param recordId        review_record 主键；非 null 时推送 SSE 进度（评测传 null 跳过）
      */
     public Verdict reviewWithDiff(UnifiedMergeRequest mr, String defaultFilePath, Long recordId) {
+        // 链路追踪：取 DB traceId 回放 MDC（异步线程无请求上下文），日志按 traceId 聚合
+        if (recordId != null) {
+            String traceId = reviewRecordService.getTraceId(recordId);
+            if (traceId != null) {
+                org.slf4j.MDC.put(io.github.lalala1314521.codereviewagent.common.trace.TraceIdFilter.MDC_KEY, traceId);
+            }
+        }
+        try {
+            return doReviewWithDiff(mr, defaultFilePath, recordId);
+        } finally {
+            org.slf4j.MDC.remove(io.github.lalala1314521.codereviewagent.common.trace.TraceIdFilter.MDC_KEY);
+        }
+    }
+
+    private Verdict doReviewWithDiff(UnifiedMergeRequest mr, String defaultFilePath, Long recordId) {
         // 1. diff 结构化 + 规则引擎先跑
         progressPublisher.publish(recordId, ProgressEvent.RULE_SCANNING,
                 "正在匹配审查规则集（" + ruleEngine.countEnabledRules() + " 条规则）");
