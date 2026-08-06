@@ -29,45 +29,20 @@
 
 ## 架构概览
 
-```
-                  ┌──────────────┐
-                  │  GitLab /    │
-                  │  GitHub      │
-                  └──────┬───────┘
-                         │ Webhook (MR/PR events)
-                         ▼
-              ┌─────────────────────┐
-              │  WebhookController  │
-              │  + SignatureVerify  │
-              └────────┬────────────┘
-                       │
-              ┌────────▼────────────┐
-              │  IdempotentGuard    │  ← Redis
-              └────────┬────────────┘
-                       │
-              ┌────────▼────────────┐
-              │  Async Thread Pool  │
-              └────────┬────────────┘
-                       │
-         ┌─────────────┼─────────────┐
-         ▼             ▼             ▼
-  ┌──────────┐  ┌──────────┐  ┌───────────┐
-  │ Diff     │  │ Rule     │  │ LLM       │
-  │ Parser   │  │ Engine   │  │ Provider  │
-  └────┬─────┘  └────┬─────┘  └─────┬─────┘
-       │              │              │
-       └──────────────┼──────────────┘
-                      ▼
-           ┌──────────────────┐
-           │  VerdictDecider  │
-           └────────┬─────────┘
-                    │
-         ┌──────────┼──────────┐
-         ▼                     ▼
-  ┌──────────────┐    ┌─────────────────┐
-  │ Comment      │    │ MySQL           │
-  │ Publisher    │    │ + SSE Progress  │
-  └──────────────┘    └─────────────────┘
+```mermaid
+flowchart TD
+    A["GitLab / GitHub"] -->|"Webhook (MR/PR events)"| B["WebhookController + SignatureVerify"]
+    B --> C["IdempotentGuard"]
+    C -.->|Redis| R[("Redis")]
+    C --> D["Async Thread Pool"]
+    D --> E["Diff Parser"]
+    D --> F["Rule Engine"]
+    D --> G["LLM Provider"]
+    E --> H["VerdictDecider"]
+    F --> H
+    G --> H
+    H --> I["Comment Publisher"]
+    H --> J["MySQL + SSE Progress"]
 ```
 
 ## 技术栈
